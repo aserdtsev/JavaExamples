@@ -52,6 +52,7 @@ public class App {
   }
 
   private static void putArgToMap(Map<String, String> map, String value) {
-    map.put(value.split(":")[0], value.split(":")[1]);
+    String[] pair = value.split(":");
+    map.put(pair[0], pair[1]);
   }
 }

@@ -2,7 +2,7 @@ package com.serdtsev;
 
 import java.util.*;
 
-public class ProcessingDemo {
+public class App {
   public static void main(String[] args) {
     System.out.println("Главный поток запущен.");
 
@@ -23,13 +23,13 @@ public class ProcessingDemo {
     Dispatcher dispatcher = new Dispatcher();
     dispatcher.addItems(items);
 
-    List<Processor> processors = new ArrayList<Processor>();
+    List<Handler> handlers = new ArrayList<Handler>();
 
     // Запустим обработчики.
     for (int i = 0; i < processorCount; i++) {
-      Processor processor = new Processor(dispatcher);
-      processor.start();
-      processors.add(processor);
+      Handler handler = new Handler(dispatcher);
+      handler.start();
+      handlers.add(handler);
     }
 
     boolean isAlive;
@@ -40,8 +40,8 @@ public class ProcessingDemo {
         e.printStackTrace();
       }
       isAlive = false;
-      for (Processor processor : processors) {
-        isAlive = isAlive || processor.isAlive();
+      for (Handler handler : handlers) {
+        isAlive = isAlive || handler.isAlive();
       }
     } while (isAlive);
 

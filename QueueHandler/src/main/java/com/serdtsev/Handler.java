@@ -2,10 +2,10 @@ package com.serdtsev;
 
 import java.util.List;
 
-public class Processor extends Thread {
+public class Handler extends Thread {
   Dispatcher dispatcher;
 
-  public Processor(Dispatcher dispatcher) {
+  public Handler(Dispatcher dispatcher) {
     this.dispatcher = dispatcher;
   }
 

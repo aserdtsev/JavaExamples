@@ -5,14 +5,20 @@ import java.util.*;
 public class App {
   public static void main(String[] args) {
     System.out.println("Главный поток запущен.");
+    Map<String, String> argMap = new HashMap<>();
+    for (String arg : args) {
+      String[] pair = arg.split(":");
+      argMap.put(pair[0], pair[1]);
+    }
 
-    int groupCount = 10;
-    int processorCount = 7;
-    long itemCount = 50;
+
+    int groupCount = Integer.decode(argMap.get("groups"));
+    int processorCount = Integer.decode(argMap.get("handlers"));
+    long itemCount = Integer.decode(argMap.get("items"));
 
     // Заполним таблицу.
     long idCount = 0;
-    Set<Item> items = new HashSet<Item>();
+    Set<Item> items = new HashSet<>();
     Random random = new Random();
     for (int i = 0; i < itemCount; i++) {
       int groupId = random.nextInt(groupCount);
@@ -23,7 +29,7 @@ public class App {
     Dispatcher dispatcher = new Dispatcher();
     dispatcher.addItems(items);
 
-    List<Handler> handlers = new ArrayList<Handler>();
+    List<Handler> handlers = new ArrayList<>();
 
     // Запустим обработчики.
     for (int i = 0; i < processorCount; i++) {

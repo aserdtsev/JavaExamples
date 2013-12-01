@@ -5,7 +5,10 @@
   <groupId>com.serdtsev</groupId>
   <artifactId>JavaExamples</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <packaging>jar</packaging>
+    <modules>
+        <module>QueueHandler</module>
+    </modules>
+    <packaging>pom</packaging>
 
   <name>JavaExamples</name>
   <url>http://maven.apache.org</url>

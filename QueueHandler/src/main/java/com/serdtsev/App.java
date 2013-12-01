@@ -5,12 +5,9 @@ import java.util.*;
 public class App {
   public static void main(String[] args) {
     System.out.println("Главный поток запущен.");
-    Map<String, String> argMap = new HashMap<>();
-    for (String arg : args) {
-      String[] pair = arg.split(":");
-      argMap.put(pair[0], pair[1]);
-    }
 
+    Map<String, String> argMap = new HashMap<>();
+    Arrays.asList(args).forEach(value -> (argMap.put(value.split(":")[0], value.split(":")[1])));
 
     int groupCount = Integer.decode(argMap.get("groups"));
     int processorCount = Integer.decode(argMap.get("handlers"));

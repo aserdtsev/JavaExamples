@@ -7,10 +7,10 @@ public class App {
     System.out.println("Главный поток запущен.");
 
     Map<String, String> argMap = new HashMap<>();
-    Arrays.asList(args).forEach(value -> (argMap.put(value.split(":")[0], value.split(":")[1])));
+    Arrays.asList(args).forEach(value -> putArgToMap(argMap, value));
 
     int groupCount = Integer.decode(argMap.get("groups"));
-    int processorCount = Integer.decode(argMap.get("handlers"));
+    int handlerCount = Integer.decode(argMap.get("handlers"));
     long itemCount = Integer.decode(argMap.get("items"));
 
     // Заполним таблицу.
@@ -29,7 +29,7 @@ public class App {
     List<Handler> handlers = new ArrayList<>();
 
     // Запустим обработчики.
-    for (int i = 0; i < processorCount; i++) {
+    for (int i = 0; i < handlerCount; i++) {
       Handler handler = new Handler(dispatcher);
       handler.start();
       handlers.add(handler);
@@ -49,5 +49,9 @@ public class App {
     } while (isAlive);
 
     System.out.println("Главный поток завершен");
+  }
+
+  private static void putArgToMap(Map<String, String> map, String value) {
+    map.put(value.split(":")[0], value.split(":")[1]);
   }
 }

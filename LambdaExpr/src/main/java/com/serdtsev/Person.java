@@ -15,10 +15,17 @@ public class Person {
   LocalDate birthday;
   Sex gender;
 
-  public Person(String name, Sex gender, LocalDate birthday) {
+  public String getEmail() {
+    return email;
+  }
+
+  String email;
+
+  public Person(String name, Sex gender, LocalDate birthday, String email) {
     this.name = name;
     this.gender = gender;
     this.birthday = birthday;
+    this.email = email;
   }
 
   public int getAge() {

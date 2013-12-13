@@ -3,25 +3,18 @@ package com.serdtsev;
 import java.util.*;
 
 public class App {
+  private static Set<Item> items = new HashSet<>();
   public static void main(String[] args) {
     System.out.println("Главный поток запущен.");
 
     Map<String, String> argMap = new HashMap<>();
-    Arrays.asList(args).forEach(value -> putArgToMap(argMap, value));
+    Arrays.asList(args).forEach(value -> argMap.put(value.split(":")[0], value.split(":")[1]));
 
-    int groupCount = Integer.decode(argMap.get("groups"));
-    int handlerCount = Integer.decode(argMap.get("handlers"));
-    long itemCount = Integer.decode(argMap.get("items"));
+    int groupsNum = Integer.decode(argMap.get("groups"));
+    int handlersNum = Integer.decode(argMap.get("handlers"));
+    long itemsNum = Integer.decode(argMap.get("items"));
 
-    // Заполним таблицу.
-    long idCount = 0;
-    Set<Item> items = new HashSet<>();
-    Random random = new Random();
-    for (int i = 0; i < itemCount; i++) {
-      int groupId = random.nextInt(groupCount);
-      items.add(new Item(idCount, groupId));
-      idCount++;
-    }
+    fillItems(groupsNum, itemsNum, items);
 
     Dispatcher dispatcher = new Dispatcher();
     dispatcher.addItems(items);
@@ -29,11 +22,11 @@ public class App {
     List<Handler> handlers = new ArrayList<>();
 
     // Запустим обработчики.
-    for (int i = 0; i < handlerCount; i++) {
-      Handler handler = new Handler(dispatcher);
-      handler.start();
-      handlers.add(handler);
+    int i = 0;
+    while (i++ < handlersNum) {
+      handlers.add(new Handler(dispatcher));
     }
+    handlers.parallelStream().forEach(h -> h.start());
 
     boolean isAlive;
     do {
@@ -51,8 +44,11 @@ public class App {
     System.out.println("Главный поток завершен");
   }
 
-  private static void putArgToMap(Map<String, String> map, String value) {
-    String[] pair = value.split(":");
-    map.put(pair[0], pair[1]);
+  private static void fillItems(int groupsNum, long itemsNum, Set<Item> items) {
+    Random random = new Random();
+    long id = 0;
+    while (id < itemsNum) {
+      items.add(new Item(id++, random.nextInt(groupsNum)));
+    }
   }
 }

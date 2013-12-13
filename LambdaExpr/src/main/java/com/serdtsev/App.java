@@ -6,10 +6,14 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
- * Hello world!
+ * Лямбда-выражения позволяют подавать в параметры методов выражения, которые можно выполнять в теле метода. Раньше
+ * подобная функциональность реализовалась с помощью анонимных классов. Выглядит это чудовищно. Лямбда-выражения
+ * делают то же самое на порядок выразительнее и компактнее.
  *
+ * Использованы примеры из http://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html.
  */
 public class App {
   public static void main(String[] args) {
@@ -18,11 +22,8 @@ public class App {
 
   /**
    * Печатает список людей, которые соответствуют критерию: женщины от 18 до 25 лет. Критерий задан реализацией
-   * интерфейса Predicate с единственным методом test(). В первом подходе используется анонимный класс. Во втором -
-   * лямбда-выражение. Следует учитывать, что использование лямбда-выражения в данном контексте возможно только в том
-   * случае, если интерфейс содержит единственный метод.
-   *
-   * Пример взят из http://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html.
+   * интерфейса Predicate с единственным методом test(). В первом подходе используется анонимный класс. В последующих -
+   * лямбда-выражения.
    */
   private static void printPersonsWithPredicate() {
     List<Person> roster = new ArrayList<>();
@@ -31,13 +32,13 @@ public class App {
     roster.add(new Person("Kharenko Anna", Person.Sex.FEMALE, LocalDate.of(1991, 4, 4), "akharenko@xxx.ru"));
     roster.add(new Person("Serdtseva Nadezda", Person.Sex.FEMALE, LocalDate.of(1995, 5, 20), "nserdtseva@xxx.ru"));
 
-    System.out.println("Печатаем с помощью ананимного класса:");
+    System.out.println("\nПечатаем с помощью ананимного класса:");
     processPersons(
         roster,
         new Predicate<Person>() {
           @Override
-          public boolean test(Person person) {
-            return person.gender == Person.Sex.FEMALE && person.getAge() >= 18 && person.getAge() <= 25;
+          public boolean test(Person p) {
+            return p.gender == Person.Sex.FEMALE && p.getAge() >= 18 && p.getAge() <= 25;
           }
         },
         new Consumer<Person>() {
@@ -48,19 +49,36 @@ public class App {
         }
     );
 
-    System.out.println("А теперь печатаем с использованием лямбда-выражения:");
+    System.out.println("\nА теперь печатаем с использованием лямбда-выражения:");
     processPersons(
         roster,
         p -> p.gender == Person.Sex.FEMALE && p.getAge() >= 18 && p.getAge() <= 25,
         p -> p.print());
 
-    System.out.println("Теперь печатаем email:");
+    System.out.println("\nТеперь печатаем email:");
     processPersonsWithFunction(
         roster,
         p -> p.gender == Person.Sex.FEMALE && p.getAge() >= 18 && p.getAge() <= 25,
         p -> p.getEmail(),
         email -> System.out.println(email)
     );
+
+    System.out.println("\nСнова печатаем email в функциональном стиле:");
+    roster.stream()
+        .filter(p -> p.gender == Person.Sex.FEMALE && p.getAge() >= 18 && p.getAge() <= 25)
+        .map(p -> p.getEmail())
+        .forEach(email -> System.out.println(email));
+
+    System.out.println("\nЕсли вспомнить о задаче, получится еще короче:");
+    roster.stream()
+        .filter(p -> p.gender == Person.Sex.FEMALE && p.getAge() >= 18 && p.getAge() <= 25)
+        .forEach(p -> System.out.println(p.getEmail()));
+
+    System.out.println("\nМожно и так:");
+    List<Person> filterPersons = roster.stream()
+        .filter(p -> p.gender == Person.Sex.FEMALE && p.getAge() >= 18 && p.getAge() <= 25)
+        .collect(Collectors.toList());
+    filterPersons.forEach(p -> System.out.println(p.getEmail()));
   }
 
   static void processPersons(List<Person> roster, Predicate<Person> tester, Consumer<Person> block) {

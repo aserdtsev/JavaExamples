@@ -1,9 +1,11 @@
 package com.serdtsev;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Handler extends Thread {
   Dispatcher dispatcher;
+  List<Item> processedItems = new ArrayList<>();
 
   public Handler(Dispatcher dispatcher) {
     this.dispatcher = dispatcher;
@@ -23,11 +25,17 @@ public class Handler extends Thread {
   }
 
   private void processItem(Item item) {
+    item.setProcessingInfo(this);
     System.out.println("Поток " + getId() + " обработал " + item.toString() + ".");
+    processedItems.add(item);
     try {
       Thread.sleep(250);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+  }
+
+  public List<Item> getProcessedItems() {
+    return processedItems;
   }
 }

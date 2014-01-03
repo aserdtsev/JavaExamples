@@ -2,8 +2,24 @@ package com.serdtsev;
 
 import java.util.*;
 
+/**
+ * Имеется очередь элементов на обработку. Каждый элемент имеет собственный идентификатор (itemId) и принадлежит к
+ * некоторой группе (groupId). Внутри группы элементы должны обрабатываться строго последовательно, в порядке
+ * увеличения идентификаторов элементов. Элементы разных групп могут обрабатываться параллельно. Обработка элемента
+ * производится путем вызова некоторого метода с параметрами itemId и groupId, который печатает полученные
+ * идентификаторы элементов. Элементы в очередь добавляются асинхронно внешним процессом. После обработки элемент
+ * должен быть удален из очереди.
+
+ * Написать обработчик очереди, работающий в несколько потоков. Максимальное количество потоков ограничено, задается
+ * при старте обработчика и в общем случае меньше числа групп. Обеспечить равномерную обработку групп элементов:
+ * наличие в очереди групп с большим количеством элементов не должно приводить к длительным задержкам в обработке
+ * других групп.
+ */
+
 public class App {
   private static Set<Item> items = new HashSet<>();
+  private static List<Handler> handlers = new ArrayList<>();
+
   public static void main(String[] args) {
     System.out.println("Главный поток запущен.");
 
@@ -19,14 +35,12 @@ public class App {
     Dispatcher dispatcher = new Dispatcher();
     dispatcher.addItems(items);
 
-    List<Handler> handlers = new ArrayList<>();
-
     // Запустим обработчики.
     int i = 0;
     while (i++ < handlersNum) {
       handlers.add(new Handler(dispatcher));
     }
-    handlers.parallelStream().forEach(h -> h.start());
+    handlers.parallelStream().forEach(Handler::start);
 
     boolean isAlive;
     do {
@@ -51,4 +65,24 @@ public class App {
       items.add(new Item(id++, random.nextInt(groupsNum)));
     }
   }
+
+  public static SortedSet<Item> getProcessedItems() {
+    Comparator<Item> comparator = (o1, o2) -> {
+      if (o1.getWhenWasProcessed().isBefore(o2.getWhenWasProcessed())) {
+        return -1;
+      } else if (o1.getWhenWasProcessed().isAfter(o2.getWhenWasProcessed())) {
+        return 1;
+      } else {
+        return 0;
+      }
+    };
+    SortedSet<Item> result = new TreeSet<>(comparator);
+
+    for (Handler handler : handlers) {
+      result.addAll(handler.getProcessedItems());
+    }
+
+    return result;
+  }
+
 }

@@ -8,17 +8,15 @@ public class Dispatcher {
   private Comparator<Item> itemComparator;
 
   public Dispatcher() {
-    groups = new TreeMap<Long, Queue<Item>>();
-    groupLocks = new HashMap<Long, Long>();
-    itemComparator = new Comparator<Item>() {
-      public int compare(Item o1, Item o2) {
-        if (o1.getId() < o2.getId()) {
-          return -1;
-        } else if (o1.getId() > o2.getId()) {
-          return 1;
-        }
-        return 0;
+    groups = new TreeMap<>();
+    groupLocks = new HashMap<>();
+    itemComparator = (o1, o2) -> {
+      if (o1.getId() < o2.getId()) {
+        return -1;
+      } else if (o1.getId() > o2.getId()) {
+        return 1;
       }
+      return 0;
     };
   }
 
@@ -29,7 +27,7 @@ public class Dispatcher {
       long groupId = item.getGroupId();
       Queue<Item> groupItems = groups.get(groupId);
       if (groupItems == null) {
-        groupItems = new PriorityQueue<Item>(initialCapacity, itemComparator);
+        groupItems = new PriorityQueue<>(initialCapacity, itemComparator);
         groups.put(groupId, groupItems);
       }
       groupItems.add(item);
@@ -43,7 +41,7 @@ public class Dispatcher {
       System.out.println("Диспетчер разблокировал группу " + lastGroupId + " (поток " + threadId + ")");
     }
 
-    List<Item> itemList = new ArrayList<Item>();
+    List<Item> itemList = new ArrayList<>();
     Iterator<Map.Entry<Long, Queue<Item>>> iterator = groups.entrySet().iterator();
     while (iterator.hasNext()) {
       Map.Entry<Long, Queue<Item>> entry = iterator.next();

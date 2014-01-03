@@ -1,10 +1,14 @@
 package com.serdtsev;
 
-public class Item {
-  long id;
-  long groupId;
+import java.time.LocalTime;
 
-  public Item(long id, long groupId) {
+public class Item {
+  private long id;
+  private int groupId;
+  private LocalTime whenWasProcessed;
+  private Handler handler;
+
+  public Item(long id, int groupId) {
     this.id = id;
     this.groupId = groupId;
   }
@@ -13,8 +17,17 @@ public class Item {
     return id;
   }
 
-  public long getGroupId() {
+  public int getGroupId() {
     return groupId;
+  }
+
+  public void setProcessingInfo(Handler handler) {
+    this.whenWasProcessed = LocalTime.now();
+    this.handler = handler;
+  }
+
+  public LocalTime getWhenWasProcessed() {
+    return whenWasProcessed;
   }
 
   @Override
@@ -22,6 +35,8 @@ public class Item {
     return "Item{" +
       "id=" + id +
       ", groupId=" + groupId +
+      ", whenWasProcessed=" + whenWasProcessed +
+      ", handler=" + handler.getId() +
       '}';
   }
 
@@ -38,7 +53,7 @@ public class Item {
   @Override
   public int hashCode() {
     int result = (int) (id ^ (id >>> 32));
-    result = 31 * result + (int) (groupId ^ (groupId >>> 32));
+    result = 31 * result + (groupId ^ (groupId >>> 32));
     return result;
   }
 }

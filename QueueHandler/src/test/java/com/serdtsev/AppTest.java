@@ -25,7 +25,7 @@ public class AppTest {
 
   @Test
   public void testMain() throws Exception {
-    String[] args = new String[] {"groups:10", "handlers:7", "items:50"};
+    String[] args = new String[] {"groups:10", "handlers:7", "items:50", "packetSize:3"};
     App.main(args);
 
     SortedSet<Item> items = App.getProcessedItems();
@@ -44,5 +44,7 @@ public class AppTest {
     groups.forEach((id, stat) -> System.out.println(stat));
 
     items.forEach(System.out::println);
+
+
   }
 }

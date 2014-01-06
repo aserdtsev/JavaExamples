@@ -3,6 +3,8 @@ package com.serdtsev;
 import java.util.*;
 
 /**
+ * Задание
+ *
  * Имеется очередь элементов на обработку. Каждый элемент имеет собственный идентификатор (itemId) и принадлежит к
  * некоторой группе (groupId). Внутри группы элементы должны обрабатываться строго последовательно, в порядке
  * увеличения идентификаторов элементов. Элементы разных групп могут обрабатываться параллельно. Обработка элемента
@@ -29,10 +31,11 @@ public class App {
     int groupsNum = Integer.decode(argMap.get("groups"));
     int handlersNum = Integer.decode(argMap.get("handlers"));
     long itemsNum = Integer.decode(argMap.get("items"));
+    int packetSize = Integer.decode(argMap.get("packetSize"));
 
     fillItems(groupsNum, itemsNum, items);
 
-    Dispatcher dispatcher = new Dispatcher();
+    Dispatcher dispatcher = new Dispatcher(packetSize);
     dispatcher.addItems(items);
 
     // Запустим обработчики.

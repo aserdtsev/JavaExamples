@@ -5,6 +5,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
 public class Dispatcher {
+  private int groupsNum;
   // Размер пакета элементов, который передается на обработку методом getNextItems.
   private int packetSize;
   // Группы с очередями необработанных элементов.
@@ -13,6 +14,7 @@ public class Dispatcher {
   private Map<Long, Integer> groupLocks;
 
   public Dispatcher(int groupsNum, int packetSize) {
+    this.groupsNum = groupsNum;
     this.packetSize = packetSize;
     groups = new TreeMap<>();
     groupLocks = new HashMap<>();
@@ -39,43 +41,46 @@ public class Dispatcher {
     for (Item item : items) {
       groups.get(item.getGroupId()).add(item);
     }
+    groups.forEach((groupId, groupItems) -> {
+      System.out.println("Группа " + groupId + ":");
+      groupItems.forEach(System.out::println);
+    });
+  }
+
+  public void lockGroup(long threadId, int groupId) {
+    groupLocks.put(threadId, groupId);
+    System.out.println("Lock group " + groupId + " (thread " + threadId + ")");
+  }
+
+  public void unlockGroup(long threadId) {
+    Integer groupId = groupLocks.get(threadId);
+    groupLocks.remove(threadId);
+    System.out.println("Unlock group " + groupId + " (thread " + threadId + ")");
   }
 
   /**
    * Возвращает список элементов одной группы для обработки потоком. Предыдущую группу потока разблокирует,
    * выбранную группу блокирует, удаляя и добавляя в groupLocks соответственно.
    */
-  public synchronized List<Item> getNextItems(long threadId) {
-    Integer lastGroupId = groupLocks.get(threadId);
-    if (lastGroupId != null) {
-      groupLocks.remove(threadId);
-      System.out.println("Диспетчер разблокировал группу " + lastGroupId + " (поток " + threadId + ")");
-    }
-
-    List<Item> items = new ArrayList<>();
-    Iterator<Map.Entry<Integer, BlockingQueue<Item>>> iterator = groups.entrySet().iterator();
-    while (iterator.hasNext()) {
-      Map.Entry<Integer, BlockingQueue<Item>> entry = iterator.next();
-      Integer groupId = entry.getKey();
-      if (!groupLocks.containsValue(groupId) && !groupId.equals(lastGroupId)) {
-        groupLocks.put(threadId, groupId);
-        System.out.println("Диспетчер заблокировал группу " + groupId + " (поток " + threadId + ")");
-        Queue<Item> queue = entry.getValue();
+  public synchronized List<Item> getNextItems(long threadId, int lastGroupId) {
+    List<Item> result = new ArrayList<>();
+    Integer groupId = lastGroupId;
+    do {
+      groupId = Math.floorMod((groupId != null) ? groupId+1 : 0, groupsNum);
+      BlockingQueue<Item> queue = groups.get(groupId);
+      if (!groupLocks.containsValue(groupId) && !queue.isEmpty()) {
+        lockGroup(threadId, groupId);
         int count = 0;
         while (!queue.isEmpty() && count < packetSize) {
           Item item = queue.poll();
           if (item != null) {
-            items.add(item);
+            result.add(item);
             count++;
-          } else {
-            // Удаляем группу с пустой очередью из groups.
-            iterator.remove();
           }
         }
-        break;
       }
-    }
+    } while (result.isEmpty() && !groupId.equals(lastGroupId));
 
-    return items;
+    return result;
   }
 }

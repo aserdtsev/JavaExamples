@@ -63,9 +63,8 @@ public class App {
 
   private static void fillItems(int groupsNum, long itemsNum, Set<Item> items) {
     Random random = new Random();
-    long id = 0;
-    while (id < itemsNum) {
-      items.add(new Item(id++, random.nextInt(groupsNum)));
+    while (items.size() < itemsNum) {
+      items.add(new Item(random.nextInt((int)itemsNum*2), random.nextInt(groupsNum)));
     }
   }
 
@@ -73,10 +72,8 @@ public class App {
     Comparator<Item> comparator = (o1, o2) -> {
       if (o1.getWhenWasProcessed().isBefore(o2.getWhenWasProcessed())) {
         return -1;
-      } else if (o1.getWhenWasProcessed().isAfter(o2.getWhenWasProcessed())) {
-        return 1;
       } else {
-        return 0;
+        return 1;
       }
     };
     SortedSet<Item> result = new TreeSet<>(comparator);

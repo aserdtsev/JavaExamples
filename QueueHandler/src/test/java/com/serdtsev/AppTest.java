@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
+import static junit.framework.Assert.assertEquals;
+
 /**
  * User: Andrey Serdtsev
  */
@@ -25,10 +27,14 @@ public class AppTest {
 
   @Test
   public void testMain() throws Exception {
-    String[] args = new String[] {"groups:10", "handlers:7", "items:50", "packetSize:3"};
+    final int ITEMS_NUM = 200;
+    String[] args = new String[] {"groups:10", "handlers:7", "items:" + ITEMS_NUM, "packetSize:1"};
     App.main(args);
 
     SortedSet<Item> items = App.getProcessedItems();
+    items.forEach(System.out::println);
+    assertEquals(ITEMS_NUM, items.size());
+
     Comparator<Integer> comparator = (o1, o2) -> o1-o2;
     Map<Integer, GroupStat> groups = new TreeMap<>(comparator);
     items.forEach(item -> {
@@ -42,9 +48,6 @@ public class AppTest {
     });
 
     groups.forEach((id, stat) -> System.out.println(stat));
-
-    items.forEach(System.out::println);
-
 
   }
 }

@@ -45,7 +45,8 @@ public class Item {
       "id=" + id +
       ", groupId=" + groupId +
       ", whenWasProcessed=" + whenWasProcessed +
-      ", handler=" + handler.getId() +
+      ", handler=" + ((handler != null) ? handler.getId() : "none") +
+      ", hashCode=" + hashCode() +
       '}';
   }
 
@@ -56,13 +57,12 @@ public class Item {
 
     Item item = (Item) o;
 
-    return groupId == item.groupId && id == item.id;
+    return id == item.id;
+
   }
 
   @Override
   public int hashCode() {
-    int result = (int) (id ^ (id >>> 32));
-    result = 31 * result + (groupId ^ (groupId >>> 32));
-    return result;
+    return (int) id;
   }
 }

@@ -34,7 +34,8 @@ public class GroupStat {
       throw new IllegalArgumentException("Некорректная группа элемента");
     }
     if (item.getId() < lastItem.getId()) {
-      throw new IllegalArgumentException("Некорректная последовательность обработки элементов");
+      throw new IllegalArgumentException("Некорректная последовательность обработки элементов:\n" + item +
+          " обработан позже " + lastItem);
     }
     lastItem = item;
     itemCount++;

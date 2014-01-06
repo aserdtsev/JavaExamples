@@ -35,7 +35,7 @@ public class App {
 
     fillItems(groupsNum, itemsNum, items);
 
-    Dispatcher dispatcher = new Dispatcher(packetSize);
+    Dispatcher dispatcher = new Dispatcher(groupsNum, packetSize);
     dispatcher.addItems(items);
 
     // Запустим обработчики.

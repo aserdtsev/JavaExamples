@@ -1,12 +1,14 @@
 package com.serdtsev;
 
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 public class Dispatcher {
   // Размер пакета элементов, который передается на обработку методом getNextItems.
   private int packetSize;
   // Группы с очередями необработанных элементов.
-  private SortedMap<Long, Queue<Item>> groups;
+  private SortedMap<Long, BlockingQueue<Item>> groups;
   // Пары [Идентификатор потока]-[Номер группы]. Если пара присутствует в карте, то поток обрабатывает группу.
   private Map<Long, Long> groupLocks;
   private Comparator<Item> itemComparator;
@@ -27,17 +29,15 @@ public class Dispatcher {
 
   /**
    * Подготавливает элементы к обработке, распределяя по группам.
-   *
-   * @param items
    */
-  public synchronized void addItems(Set<Item> items) {
+  public void addItems(Set<Item> items) {
     final int initialCapacity = 100;
 
     for (Item item : items) {
       long groupId = item.getGroupId();
-      Queue<Item> groupItems = groups.get(groupId);
+      BlockingQueue<Item> groupItems = groups.get(groupId);
       if (groupItems == null) {
-        groupItems = new PriorityQueue<>(initialCapacity, itemComparator);
+        groupItems = new PriorityBlockingQueue<>(initialCapacity, itemComparator);
         groups.put(groupId, groupItems);
       }
       groupItems.add(item);
@@ -47,7 +47,6 @@ public class Dispatcher {
   /**
    * Возвращает список элементов одной группы для обработки потоком. Предыдущую группу потока разблокирует,
    * выбранную группу блокирует, удаляя и добавляя в groupLocks соответственно.
-   * @param threadId
    */
   public synchronized List<Item> getNextItems(long threadId) {
     Long lastGroupId = groupLocks.get(threadId);
@@ -57,9 +56,9 @@ public class Dispatcher {
     }
 
     List<Item> items = new ArrayList<>();
-    Iterator<Map.Entry<Long, Queue<Item>>> iterator = groups.entrySet().iterator();
+    Iterator<Map.Entry<Long, BlockingQueue<Item>>> iterator = groups.entrySet().iterator();
     while (iterator.hasNext()) {
-      Map.Entry<Long, Queue<Item>> entry = iterator.next();
+      Map.Entry<Long, BlockingQueue<Item>> entry = iterator.next();
       Long groupId = entry.getKey();
       if (!groupLocks.containsValue(groupId) && !groupId.equals(lastGroupId)) {
         groupLocks.put(threadId, groupId);

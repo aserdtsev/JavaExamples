@@ -1,5 +1,6 @@
 package com.serdtsev;
 
+import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -49,26 +50,34 @@ public class Dispatcher {
 
   public void lockGroup(long threadId, int groupId) {
     groupLocks.put(threadId, groupId);
-    System.out.println("Lock group " + groupId + " (thread " + threadId + ")");
+    System.out.println(LocalTime.now() + " Thread " + threadId + " lock group " + groupId);
   }
 
   public void unlockGroup(long threadId) {
     Integer groupId = groupLocks.get(threadId);
     groupLocks.remove(threadId);
-    System.out.println("Unlock group " + groupId + " (thread " + threadId + ")");
+    System.out.println(LocalTime.now() + " Thread " + threadId + " unlock group " + groupId);
   }
 
   /**
-   * Возвращает список элементов одной группы для обработки потоком. Предыдущую группу потока разблокирует,
-   * выбранную группу блокирует, удаляя и добавляя в groupLocks соответственно.
+   * Возвращает список элементов одной группы для обработки потоком. Выбранную группу блокирует.
    */
-  public synchronized List<Item> getNextItems(long threadId, int lastGroupId) {
+  public synchronized List<Item> getNextItems(long threadId, Integer lastGroupId) {
     List<Item> result = new ArrayList<>();
     Integer groupId = lastGroupId;
     do {
       groupId = Math.floorMod((groupId != null) ? groupId+1 : 0, groupsNum);
       BlockingQueue<Item> queue = groups.get(groupId);
+      System.out.println(LocalTime.now() + " Thread " + threadId + " try group " + groupId +
+          ": groupLocks.containsValue(groupId)=" + groupLocks.containsValue(groupId) +
+          "; queue.isEmpty()=" + queue.isEmpty());
       if (!groupLocks.containsValue(groupId) && !queue.isEmpty()) {
+        // Задержим установку блокировки, чтобы спровоцировать борьбу потоков за группу.
+        try {
+          Thread.sleep(5);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
         lockGroup(threadId, groupId);
         int count = 0;
         while (!queue.isEmpty() && count < packetSize) {

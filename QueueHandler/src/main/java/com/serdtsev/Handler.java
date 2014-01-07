@@ -14,7 +14,7 @@ public class Handler extends Thread {
 
   @Override
   public void run() {
-    System.out.println(LocalTime.now() + " " + getName() + " запущен.");
+    System.out.println(LocalTime.now() + " [" + getName() + "] запущен.");
     List<Item> items;
     do {
       items = dispatcher.getNextItems();
@@ -27,7 +27,7 @@ public class Handler extends Thread {
           dispatcher.unlockGroup();
         }
       }
-    } while (!items.isEmpty());
+    } while (!items.isEmpty() || dispatcher.hasItems());
     System.out.println(LocalTime.now() + " [" + getName() + "] завершил работу.");
   }
 

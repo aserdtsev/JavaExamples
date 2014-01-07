@@ -6,6 +6,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -19,6 +20,7 @@ public class Dispatcher {
   // в конструкторе, далее ее состав не меняется.
   private Map<Integer, Lock> groupLocks;
   private ConcurrentMap<Thread, Integer> threads;
+  private AtomicBoolean hasItems = new AtomicBoolean(false);
 
   public Dispatcher(int groupsNum, int packetSize) {
     this.groupsNum = groupsNum;
@@ -47,6 +49,7 @@ public class Dispatcher {
    * Подготавливает элементы к обработке, распределяя по группам.
    */
   public void addItems(Set<Item> items) {
+    hasItems.set(!items.isEmpty());
     for (Item item : items) {
       groups.get(item.getGroupId()).add(item);
     }
@@ -69,9 +72,12 @@ public class Dispatcher {
   public List<Item> getNextItems() {
     List<Item> result = new ArrayList<>();
     Integer lastGroupId = threads.get(Thread.currentThread());
+    if (lastGroupId == null) {
+      lastGroupId = groupsNum-1;
+    }
     Integer groupId = lastGroupId;
     do {
-      groupId = Math.floorMod((groupId != null) ? groupId+1 : 0, groupsNum);
+      groupId = Math.floorMod(groupId+1, groupsNum);
 
       BlockingQueue<Item> queue = groups.get(groupId);
       Lock lock = groupLocks.get(groupId);
@@ -89,8 +95,14 @@ public class Dispatcher {
         }
         threads.put(Thread.currentThread(), groupId);
       }
-    } while (result.isEmpty() && lastGroupId != null && !groupId.equals(lastGroupId));
+    } while (result.isEmpty() && !groupId.equals(lastGroupId));
+
+    hasItems.set(!result.isEmpty() || groups.entrySet().stream().anyMatch((e) -> !e.getValue().isEmpty()));
 
     return result;
+  }
+
+  public boolean hasItems() {
+    return hasItems.get();
   }
 }

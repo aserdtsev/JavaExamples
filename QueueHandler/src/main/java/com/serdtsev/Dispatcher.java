@@ -76,6 +76,7 @@ public class Dispatcher {
       lastGroupId = groupsNum-1;
     }
     Integer groupId = lastGroupId;
+    boolean localHasItems = false;
     do {
       groupId = Math.floorMod(groupId+1, groupsNum);
 
@@ -83,6 +84,7 @@ public class Dispatcher {
       Lock lock = groupLocks.get(groupId);
       System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] try group " + groupId +
           ": queue.isEmpty()=" + queue.isEmpty());
+      localHasItems = localHasItems || !queue.isEmpty();
       if (!queue.isEmpty() && lock.tryLock()) {
         System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] lock group " + groupId);
         int count = 0;
@@ -97,7 +99,9 @@ public class Dispatcher {
       }
     } while (result.isEmpty() && !groupId.equals(lastGroupId));
 
-    hasItems.set(!result.isEmpty() || groups.entrySet().stream().anyMatch((e) -> !e.getValue().isEmpty()));
+    if (!localHasItems) {
+      hasItems.set(groups.entrySet().parallelStream().anyMatch((e) -> !e.getValue().isEmpty()));
+    }
 
     return result;
   }

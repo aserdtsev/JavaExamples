@@ -27,8 +27,8 @@ public class AppTest {
 
   @Test
   public void testMain() throws Exception {
-    final int ITEMS_NUM = 100;
-    String[] args = new String[] {"groups:5", "handlers:10", "items:" + ITEMS_NUM, "packetSize:1"};
+    final int ITEMS_NUM = 5;
+    String[] args = new String[] {"groups:2", "handlers:5", "items:" + ITEMS_NUM, "packetSize:1"};
     App.main(args);
 
     SortedSet<Item> items = App.getProcessedItems();

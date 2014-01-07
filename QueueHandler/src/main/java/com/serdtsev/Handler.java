@@ -7,7 +7,6 @@ import java.util.List;
 public class Handler extends Thread {
   Dispatcher dispatcher;
   List<Item> processedItems = new ArrayList<>();
-  Integer groupId;
 
   public Handler(Dispatcher dispatcher) {
     this.dispatcher = dispatcher;
@@ -15,25 +14,26 @@ public class Handler extends Thread {
 
   @Override
   public void run() {
-    System.out.println("Поток " + getId() + " запущен.");
+    System.out.println(LocalTime.now() + " " + getName() + " запущен.");
     List<Item> items;
     do {
-      items = dispatcher.getNextItems(getId(), groupId);
-      groupId = null;
-      for (Item item : items) {
-        groupId = item.getGroupId();
-        processItem(item);
-      }
-      if (groupId != null) {
-        dispatcher.unlockGroup(this.getId());
+      items = dispatcher.getNextItems();
+      try {
+        for (Item item : items) {
+          processItem(item);
+        }
+      } finally {
+        if (!items.isEmpty()) {
+          dispatcher.unlockGroup();
+        }
       }
     } while (!items.isEmpty());
-    System.out.println("Поток " + getId() + " завершил работу.");
+    System.out.println(LocalTime.now() + " [" + getName() + "] завершил работу.");
   }
 
   private void processItem(Item item) {
     item.setProcessingInfo(this);
-    System.out.println(LocalTime.now() + " Thread " + getId() + " processed " + item.toString() + ".");
+    System.out.println(LocalTime.now() + " [" + getName() + "] processed " + item.toString() + ".");
     processedItems.add(item);
   }
 

@@ -3,7 +3,11 @@ package com.serdtsev;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Dispatcher {
   private int groupsNum;
@@ -11,14 +15,15 @@ public class Dispatcher {
   private int packetSize;
   // Группы с очередями необработанных элементов.
   private SortedMap<Integer, BlockingQueue<Item>> groups;
-  // Пары [Идентификатор потока]-[Номер группы]. Если пара присутствует в карте, то поток обрабатывает группу.
-  private Map<Long, Integer> groupLocks;
+  // Пары [Идентификатор группы]-[Блокировка]. Смысла делать потоко-безопасным нет - коллекцию инициализируем
+  // в конструкторе, далее ее состав не меняется.
+  private Map<Integer, Lock> groupLocks;
+  private ConcurrentMap<Thread, Integer> threads;
 
   public Dispatcher(int groupsNum, int packetSize) {
     this.groupsNum = groupsNum;
     this.packetSize = packetSize;
     groups = new TreeMap<>();
-    groupLocks = new HashMap<>();
     Comparator<Item> itemComparator = (o1, o2) -> {
       if (o1.getId() < o2.getId()) {
         return -1;
@@ -27,12 +32,15 @@ public class Dispatcher {
       }
       return 0;
     };
-
     final int initialCapacity = 100;
+    groupLocks = new HashMap<>();
     for (int groupId = 0; groupId < groupsNum; groupId++) {
       BlockingQueue<Item> groupItems = new PriorityBlockingQueue<>(initialCapacity, itemComparator);
       groups.put(groupId, groupItems);
+
+      groupLocks.put(groupId, new ReentrantLock());
     }
+    threads = new ConcurrentHashMap<>();
   }
 
   /**
@@ -48,37 +56,29 @@ public class Dispatcher {
     });
   }
 
-  public void lockGroup(long threadId, int groupId) {
-    groupLocks.put(threadId, groupId);
-    System.out.println(LocalTime.now() + " Thread " + threadId + " lock group " + groupId);
-  }
-
-  public void unlockGroup(long threadId) {
-    Integer groupId = groupLocks.get(threadId);
-    groupLocks.remove(threadId);
-    System.out.println(LocalTime.now() + " Thread " + threadId + " unlock group " + groupId);
+  public void unlockGroup() {
+    Integer groupId = threads.get(Thread.currentThread());
+    Lock lock = groupLocks.get(groupId);
+    System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] unlock group " + groupId);
+    lock.unlock();
   }
 
   /**
    * Возвращает список элементов одной группы для обработки потоком. Выбранную группу блокирует.
    */
-  public synchronized List<Item> getNextItems(long threadId, Integer lastGroupId) {
+  public List<Item> getNextItems() {
     List<Item> result = new ArrayList<>();
+    Integer lastGroupId = threads.get(Thread.currentThread());
     Integer groupId = lastGroupId;
     do {
       groupId = Math.floorMod((groupId != null) ? groupId+1 : 0, groupsNum);
+
       BlockingQueue<Item> queue = groups.get(groupId);
-      System.out.println(LocalTime.now() + " Thread " + threadId + " try group " + groupId +
-          ": groupLocks.containsValue(groupId)=" + groupLocks.containsValue(groupId) +
-          "; queue.isEmpty()=" + queue.isEmpty());
-      if (!groupLocks.containsValue(groupId) && !queue.isEmpty()) {
-        // Задержим установку блокировки, чтобы спровоцировать борьбу потоков за группу.
-        try {
-          Thread.sleep(5);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-        lockGroup(threadId, groupId);
+      Lock lock = groupLocks.get(groupId);
+      System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] try group " + groupId +
+          ": queue.isEmpty()=" + queue.isEmpty());
+      if (!queue.isEmpty() && lock.tryLock()) {
+        System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] lock group " + groupId);
         int count = 0;
         while (!queue.isEmpty() && count < packetSize) {
           Item item = queue.poll();
@@ -87,8 +87,9 @@ public class Dispatcher {
             count++;
           }
         }
+        threads.put(Thread.currentThread(), groupId);
       }
-    } while (result.isEmpty() && !groupId.equals(lastGroupId));
+    } while (result.isEmpty() && lastGroupId != null && !groupId.equals(lastGroupId));
 
     return result;
   }

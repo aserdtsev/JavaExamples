@@ -45,8 +45,7 @@ public class Item {
       "id=" + id +
       ", groupId=" + groupId +
       ", whenWasProcessed=" + whenWasProcessed +
-      ", handler=" + ((handler != null) ? handler.getId() : "none") +
-      ", hashCode=" + hashCode() +
+      ", handler=" + ((handler != null) ? "[" + handler.getName() + "]" : "none") +
       '}';
   }
 

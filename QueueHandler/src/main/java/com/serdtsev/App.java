@@ -1,5 +1,6 @@
 package com.serdtsev;
 
+import java.time.LocalTime;
 import java.util.*;
 
 /**
@@ -16,11 +17,22 @@ import java.util.*;
  * при старте обработчика и в общем случае меньше числа групп. Обеспечить равномерную обработку групп элементов:
  * наличие в очереди групп с большим количеством элементов не должно приводить к длительным задержкам в обработке
  * других групп.
+ *
+ * Решение
+ *
+ * Используем принцип револьвера. Группа - это пуля, поток - это ствол (представим себе многоствольный револьвер),
+ * а диспетчер (стрелок) крутит барабан и нажимает курки для каждого ствола.
+ *
+ * Почему не используем ThreadPoolExecutor? У него одна очередь, а нам нужно обрабатывать элементы групп
+ * параллельно. Если выдавать элементы из одной очереди, то неизбежны задержки. Блокировать выдачу элемента
+ * обрабатываемой в данный момент группы? Это - задержка, да и реализация не очевидна. Выдавать элемент, но
+ * блокировать его обработку? Это лучше. Но так мы можем забить все потоки элементами одной группы, если они лягут в
+ * очередь кучно.
  */
 
 public class App {
-  private static Set<Item> items = new HashSet<>();
   private static List<Handler> handlers = new ArrayList<>();
+  private static Dispatcher dispatcher;
 
   public static void main(String[] args) {
     System.out.println("Главный поток запущен.");
@@ -33,10 +45,13 @@ public class App {
     long itemsNum = Integer.decode(argMap.get("items"));
     int packetSize = Integer.decode(argMap.get("packetSize"));
 
-    fillItems(groupsNum, itemsNum, items);
-
-    Dispatcher dispatcher = new Dispatcher(groupsNum, packetSize);
-    dispatcher.addItems(items);
+    dispatcher = new Dispatcher(groupsNum, packetSize);
+    (new Thread() {
+      @Override
+      public void run() {
+        fillItems(groupsNum, itemsNum);
+      }
+    }).start();
 
     // Запустим обработчики.
     int i = 0;
@@ -45,27 +60,31 @@ public class App {
     }
     handlers.parallelStream().forEach(Handler::start);
 
-    boolean isAlive;
-    do {
+    // Ждем, когда завершат работу все обработчики.
+    for (Handler handler : handlers) {
       try {
-        Thread.sleep(1000);
+        handler.join();
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
-      isAlive = false;
-      for (Handler handler : handlers) {
-        isAlive = isAlive || handler.isAlive();
-      }
-    } while (isAlive);
+    }
 
     System.out.println("Главный поток завершен");
   }
 
-  private static void fillItems(int groupsNum, long itemsNum, Set<Item> items) {
+  private static void fillItems(int groupsNum, long itemsNum) {
     Random random = new Random();
-    while (items.size() < itemsNum) {
-      items.add(new Item(random.nextInt((int)itemsNum*2), random.nextInt(groupsNum)));
+    for (long i = 0; i < itemsNum; i++) {
+      Item item = new Item(i, random.nextInt(groupsNum));
+      dispatcher.addItem(item);
+      System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] " + item + " added to queue");
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     }
+    dispatcher.finish();
   }
 
   public static SortedSet<Item> getProcessedItems() {

@@ -10,6 +10,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Диспетчер элементов. Раздает элементы обработчикам согласно требованиям задачи.
+ */
 public class Dispatcher {
   private int groupsNum;
   // Размер пакета элементов, который передается на обработку методом getNextItems.
@@ -21,6 +24,7 @@ public class Dispatcher {
   private Map<Integer, Lock> groupLocks;
   private ConcurrentMap<Thread, Integer> threads;
   private AtomicBoolean hasItems = new AtomicBoolean(false);
+  private AtomicBoolean finished = new AtomicBoolean(false);
 
   public Dispatcher(int groupsNum, int packetSize) {
     this.groupsNum = groupsNum;
@@ -45,18 +49,9 @@ public class Dispatcher {
     threads = new ConcurrentHashMap<>();
   }
 
-  /**
-   * Подготавливает элементы к обработке, распределяя по группам.
-   */
-  public void addItems(Set<Item> items) {
-    hasItems.set(!items.isEmpty());
-    for (Item item : items) {
-      groups.get(item.getGroupId()).add(item);
-    }
-    groups.forEach((groupId, groupItems) -> {
-      System.out.println("Группа " + groupId + ":");
-      groupItems.forEach(System.out::println);
-    });
+  public void addItem(Item item) {
+    groups.get(item.getGroupId()).add(item);
+    hasItems.set(true);
   }
 
   public void unlockGroup() {
@@ -107,6 +102,10 @@ public class Dispatcher {
   }
 
   public boolean hasItems() {
-    return hasItems.get();
+    return hasItems.get() || !finished.get();
+  }
+
+  public void finish() {
+    finished.set(true);
   }
 }

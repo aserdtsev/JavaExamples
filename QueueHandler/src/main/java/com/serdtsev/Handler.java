@@ -8,6 +8,7 @@ public class Handler extends Thread {
   Dispatcher dispatcher;
   List<Item> processedItems = new ArrayList<>();
 
+  // todo Использовать DI.
   public Handler(Dispatcher dispatcher) {
     this.dispatcher = dispatcher;
   }

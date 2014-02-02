@@ -1,5 +1,8 @@
 package com.serdtsev;
 
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+
 import java.time.LocalTime;
 import java.util.*;
 
@@ -31,8 +34,8 @@ import java.util.*;
  */
 
 public class App {
+  private static Injector injector;
   private static List<Handler> handlers = new ArrayList<>();
-  private static Dispatcher dispatcher;
 
   public static void main(String[] args) {
     System.out.println("Главный поток запущен.");
@@ -45,7 +48,8 @@ public class App {
     long itemsNum = Integer.decode(argMap.get("items"));
     int packetSize = Integer.decode(argMap.get("packetSize"));
 
-    dispatcher = new Dispatcher(groupsNum, packetSize);
+    injector = Guice.createInjector(new AppModule());
+//    dispatcher = injector.getInstance(IDispatcher.class);// new Dispatcher(groupsNum, packetSize);
     (new Thread() {
       @Override
       public void run() {
@@ -56,7 +60,7 @@ public class App {
     // Запустим обработчики.
     int i = 0;
     while (i++ < handlersNum) {
-      handlers.add(new Handler(dispatcher));
+      handlers.add(injector.getInstance(Handler.class));
     }
     handlers.parallelStream().forEach(Handler::start);
 
@@ -73,13 +77,14 @@ public class App {
   }
 
   private static void fillItems(int groupsNum, long itemsNum) {
+    IDispatcher dispatcher = injector.getInstance(IDispatcher.class);
     Random random = new Random();
     for (long i = 0; i < itemsNum; i++) {
       Item item = new Item(i, random.nextInt(groupsNum));
       dispatcher.addItem(item);
       System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] " + item + " added to queue");
       try {
-        Thread.sleep(10);
+        Thread.sleep(2);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }

@@ -1,15 +1,16 @@
 package com.serdtsev;
 
+import javax.inject.Inject;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Handler extends Thread {
-  Dispatcher dispatcher;
+  IDispatcher dispatcher;
   List<Item> processedItems = new ArrayList<>();
 
-  // todo Использовать DI.
-  public Handler(Dispatcher dispatcher) {
+  @Inject
+  public Handler(IDispatcher dispatcher) {
     this.dispatcher = dispatcher;
   }
 

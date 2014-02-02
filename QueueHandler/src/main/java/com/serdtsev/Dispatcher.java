@@ -1,5 +1,7 @@
 package com.serdtsev;
 
+import com.google.inject.Singleton;
+
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -7,16 +9,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Диспетчер элементов. Раздает элементы обработчикам согласно требованиям задачи.
  */
-public class Dispatcher {
-  private int groupsNum;
+@Singleton
+public class Dispatcher implements IDispatcher {
+  private final int groupsNum;
   // Размер пакета элементов, который передается на обработку методом getNextItems.
-  private int packetSize;
+  private AtomicInteger packetSize = new AtomicInteger(1);
   // Группы с очередями необработанных элементов.
   private SortedMap<Integer, BlockingQueue<Item>> groups;
   // Пары [Идентификатор группы]-[Блокировка]. Смысла делать потоко-безопасным нет - коллекцию инициализируем
@@ -26,9 +30,13 @@ public class Dispatcher {
   private AtomicBoolean hasItems = new AtomicBoolean(false);
   private AtomicBoolean finished = new AtomicBoolean(false);
 
+  public Dispatcher() {
+    this(2, 1);
+  }
+
   public Dispatcher(int groupsNum, int packetSize) {
     this.groupsNum = groupsNum;
-    this.packetSize = packetSize;
+    this.packetSize.set(packetSize);
     groups = new TreeMap<>();
     Comparator<Item> itemComparator = (o1, o2) -> {
       if (o1.getId() < o2.getId()) {
@@ -49,11 +57,13 @@ public class Dispatcher {
     threads = new ConcurrentHashMap<>();
   }
 
+  @Override
   public void addItem(Item item) {
     groups.get(item.getGroupId()).add(item);
     hasItems.set(true);
   }
 
+  @Override
   public void unlockGroup() {
     Integer groupId = threads.get(Thread.currentThread());
     Lock lock = groupLocks.get(groupId);
@@ -61,9 +71,7 @@ public class Dispatcher {
     lock.unlock();
   }
 
-  /**
-   * Возвращает список элементов одной группы для обработки потоком. Выбранную группу блокирует.
-   */
+  @Override
   public List<Item> getNextItems() {
     List<Item> result = new ArrayList<>();
     Integer lastGroupId = threads.get(Thread.currentThread());
@@ -83,7 +91,7 @@ public class Dispatcher {
       if (!queue.isEmpty() && lock.tryLock()) {
         System.out.println(LocalTime.now() + " [" + Thread.currentThread().getName() + "] lock group " + groupId);
         int count = 0;
-        while (!queue.isEmpty() && count < packetSize) {
+        while (!queue.isEmpty() && count < packetSize.get()) {
           Item item = queue.poll();
           if (item != null) {
             result.add(item);
@@ -101,10 +109,12 @@ public class Dispatcher {
     return result;
   }
 
+  @Override
   public boolean hasItems() {
     return hasItems.get() || !finished.get();
   }
 
+  @Override
   public void finish() {
     finished.set(true);
   }

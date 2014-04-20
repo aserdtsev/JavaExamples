@@ -1,8 +1,5 @@
 package com.serdtsev;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-
 import java.time.LocalTime;
 import java.util.*;
 
@@ -34,7 +31,7 @@ import java.util.*;
  */
 
 public class App {
-  private static Injector injector;
+  private static Dispatcher dispatcher;
   private static List<Handler> handlers = new ArrayList<>();
 
   public static void main(String[] args) {
@@ -48,8 +45,7 @@ public class App {
     long itemsNum = Integer.decode(argMap.get("items"));
     int packetSize = Integer.decode(argMap.get("packetSize"));
 
-    injector = Guice.createInjector(new AppModule());
-//    dispatcher = injector.getInstance(IDispatcher.class);// new Dispatcher(groupsNum, packetSize);
+    dispatcher =  new Dispatcher(groupsNum, packetSize);
     (new Thread() {
       @Override
       public void run() {
@@ -60,7 +56,7 @@ public class App {
     // Запустим обработчики.
     int i = 0;
     while (i++ < handlersNum) {
-      handlers.add(injector.getInstance(Handler.class));
+      handlers.add(new Handler(dispatcher));
     }
     handlers.parallelStream().forEach(Handler::start);
 
@@ -77,7 +73,6 @@ public class App {
   }
 
   private static void fillItems(int groupsNum, long itemsNum) {
-    IDispatcher dispatcher = injector.getInstance(IDispatcher.class);
     Random random = new Random();
     for (long i = 0; i < itemsNum; i++) {
       Item item = new Item(i, random.nextInt(groupsNum));

@@ -6,11 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Handler extends Thread {
-  IDispatcher dispatcher;
+  Dispatcher dispatcher;
   List<Item> processedItems = new ArrayList<>();
 
   @Inject
-  public Handler(IDispatcher dispatcher) {
+  public Handler(Dispatcher dispatcher) {
     this.dispatcher = dispatcher;
   }
 

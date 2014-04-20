@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Диспетчер элементов. Раздает элементы обработчикам согласно требованиям задачи.
  */
 @Singleton
-public class Dispatcher implements IDispatcher {
+public class Dispatcher {
   private final int groupsNum;
   // Размер пакета элементов, который передается на обработку методом getNextItems.
   private AtomicInteger packetSize = new AtomicInteger(1);
@@ -29,10 +29,6 @@ public class Dispatcher implements IDispatcher {
   private ConcurrentMap<Thread, Integer> threads;
   private AtomicBoolean hasItems = new AtomicBoolean(false);
   private AtomicBoolean finished = new AtomicBoolean(false);
-
-  public Dispatcher() {
-    this(2, 1);
-  }
 
   public Dispatcher(int groupsNum, int packetSize) {
     this.groupsNum = groupsNum;
@@ -57,13 +53,11 @@ public class Dispatcher implements IDispatcher {
     threads = new ConcurrentHashMap<>();
   }
 
-  @Override
   public void addItem(Item item) {
     groups.get(item.getGroupId()).add(item);
     hasItems.set(true);
   }
 
-  @Override
   public void unlockGroup() {
     Integer groupId = threads.get(Thread.currentThread());
     Lock lock = groupLocks.get(groupId);
@@ -71,7 +65,6 @@ public class Dispatcher implements IDispatcher {
     lock.unlock();
   }
 
-  @Override
   public List<Item> getNextItems() {
     List<Item> result = new ArrayList<>();
     Integer lastGroupId = threads.get(Thread.currentThread());
@@ -109,12 +102,10 @@ public class Dispatcher implements IDispatcher {
     return result;
   }
 
-  @Override
   public boolean hasItems() {
     return hasItems.get() || !finished.get();
   }
 
-  @Override
   public void finish() {
     finished.set(true);
   }
